@@ -1,0 +1,48 @@
+{
+  "apiVersion": "vlabs",
+  "properties": {
+    "orchestratorProfile": {
+      "orchestratorType": "Kubernetes",
+      "orchestratorRelease": "${kubernetesVersion}",
+      "kubernetesConfig": {
+        "enableRbac": true,
+        "networkPolicy": "${networkPolicy}"
+      }
+    },
+    "masterProfile": {
+      "count": 1,
+      "dnsPrefix": "${dnsPrefix}",
+      "vmSize": "Standard_D2_v2",
+      "OSDiskSizeGB": 128,
+      "vnetSubnetId": "${vnetSubnetId}",
+      "firstConsecutiveStaticIP": "${firstConsecutiveMasterIP}",
+      "vnetCidr": "${vnetCidr}"
+    },
+    "agentPoolProfiles": [
+      {
+        "name": "worker",
+        "count": 1,
+        "vmSize": "Standard_D2_v2",
+        "OSDiskSizeGB": 128,
+        "storageProfile" : "ManagedDisks",
+        "availabilityProfile": "AvailabilitySet",
+        "vnetSubnetId": "${vnetSubnetId}"
+      }
+    ],
+    "linuxProfile": {
+      "adminUsername": "azureuser",
+      "ssh": {
+        "publicKeys": [
+          {
+            "keyData": "${sshPubKeyData}"
+          }
+        ]
+      }
+    },
+    "servicePrincipalProfile": {
+      "clientId": "${servicePrincipleId}",
+      "secret": "${servicePrincipleSecret}"
+    }
+  }
+}
+
