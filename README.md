@@ -66,6 +66,10 @@ export SERVICE_PRINCIPAL_SECRET="..."
 
 # Optional overrides
 # export __VERBOSE=6
+# export AADPROFILE_SERVER_APP_ID="..."
+# export AADPROFILE_CLIENT_APP_ID="..."
+# export AADPROFILE_TENANT_ID="..."
+# export AADPROFILE_ADMIN_ID="..."
 # export SSH_PUBLIC_KEY_DATA="..."
 # export ADMIN_RESOURCE_GROUP_NAME="..."
 # export ADMIN_KEY_VAULT_NAME="..."

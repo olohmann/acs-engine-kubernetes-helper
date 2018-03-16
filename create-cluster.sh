@@ -92,6 +92,11 @@ SSH_PUBLIC_KEY_DATA=${SSH_PUBLIC_KEY_DATA:=""}
 ADMIN_RESOURCE_GROUP_NAME=${ADMIN_RESOURCE_GROUP_NAME:=""}
 ADMIN_KEY_VAULT_NAME=${ADMIN_KEY_VAULT_NAME:=""}
 ADMIN_STORAGE_NAME=${ADMIN_STORAGE_NAME:=""}
+
+AADPROFILE_SERVER_APP_ID=${AADPROFILE_SERVER_APP_ID:=""}
+AADPROFILE_CLIENT_APP_ID=${AADPROFILE_CLIENT_APP_ID:=""}
+AADPROFILE_TENANT_ID=${AADPROFILE_TENANT_ID:=""}
+AADPROFILE_ADMIN_ID=${AADPROFILE_ADMIN_ID:=""}
 # ------------------------------------------------------------------
 
 
@@ -209,6 +214,12 @@ if ! [ -z "$ADMIN_RESOURCE_GROUP_NAME" ]; then
 	if [ -z "$ADMIN_STORAGE_NAME" ]; then .log 3 "Required environment variable not defined: ADMIN_STORAGE_NAME (required in combination with ADMIN_RESOURCE_GROUP_NAME)"; param_errs=$((param_errs + 1)); fi
 fi
 
+if ! [ -z "$AADPROFILE_SERVER_APP_ID" ]; then	
+	if [ -z "$AADPROFILE_CLIENT_APP_ID" ]; then .log 3 "Required environment variable not defined: AADPROFILE_CLIENT_APP_ID (required in combination with AADPROFILE_SERVER_APP_ID)"; param_errs=$((param_errs + 1)); fi
+	if [ -z "$AADPROFILE_TENANT_ID" ]; then .log 3 "Required environment variable not defined: AADPROFILE_TENANT_ID (required in combination with AADPROFILE_SERVER_APP_ID)"; param_errs=$((param_errs + 1)); fi
+	if [ -z "$AADPROFILE_ADMIN_ID" ]; then .log 3 "Required environment variable not defined: AADPROFILE_ADMIN_ID (required in combination with AADPROFILE_SERVER_APP_ID)"; param_errs=$((param_errs + 1)); fi
+fi
+
 if [ ${param_errs} -gt 0 ]; then 
 	.log 3 "Environment configuration invalid. Aborting..."
 	exit 1
@@ -260,27 +271,36 @@ cat ${TEMPLATE_FILE} | \
 	jq ".properties.agentPoolProfiles[0].vnetSubnetId = \"${KUBERNETES_VNET_SUBNET_ID}\"" | \
 	jq ".properties.linuxProfile.ssh.publicKeys[0].keyData = \"${SSH_PUBLIC_KEY_DATA}\"" | \
 	jq ".properties.servicePrincipalProfile.clientId = \"${SERVICE_PRINCIPAL_ID}\"" | \
-	jq ".properties.servicePrincipalProfile.secret = \"${SERVICE_PRINCIPAL_SECRET}\"" > ./$outputDirName/kubernetes_tmp.json
+	jq ".properties.servicePrincipalProfile.secret = \"${SERVICE_PRINCIPAL_SECRET}\"" > ./$outputDirName/kubernetes_tmp_initial.json
 
+if [ -z "AADPROFILE_SERVER_APP_ID" ]; then
+	cat ./$outputDirName/kubernetes_tmp_initial.json | \
+		jq 'del(.properties.aadProfile)' > ./$outputDirName/kubernetes_tmp.json
+else
+	cat ./$outputDirName/kubernetes_tmp_initial.json | \
+		jq ".properties.aadProfile.serverAppID = \"${AADPROFILE_SERVER_APP_ID}\"" | \
+		jq ".properties.aadProfile.clientAppID = \"${AADPROFILE_CLIENT_APP_ID}\"" | \
+		jq ".properties.aadProfile.tenantID = \"${AADPROFILE_TENANT_ID}\"" > ./$outputDirName/kubernetes_tmp.json
+fi
 
 if [ -z "$NODE_POOL_2_NAME" ] && [ -z "$NODE_POOL_3_NAME" ]; then
 	cat ./$outputDirName/kubernetes_tmp.json | \
 	    jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_2_NAME}"))' | \
-		jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_3_NAME}"))' > $outputDirName/kubernetes.json
+		jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_3_NAME}"))' > ./$outputDirName/kubernetes.json
 elif [ -z "$NODE_POOL_3_NAME" ]; then
 	cat ./$outputDirName/kubernetes_tmp.json | \
 		jq ".properties.agentPoolProfiles[1].name = \"${NODE_POOL_2_NAME}\"" | \
 		jq ".properties.agentPoolProfiles[1].count = ${NODE_POOL_2_COUNT}" | \
 		jq ".properties.agentPoolProfiles[1].vmSize = \"${NODE_POOL_2_SIZE}\"" | \
 		jq ".properties.agentPoolProfiles[1].vnetSubnetId = \"${KUBERNETES_VNET_SUBNET_ID}\"" | \
-		jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_3_NAME}"))' > $outputDirName/kubernetes.json
+		jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_3_NAME}"))' > ./$outputDirName/kubernetes.json
 elif [ -z "$NODE_POOL_2_NAME" ]; then
 	cat ./$outputDirName/kubernetes_tmp.json | \
 		jq ".properties.agentPoolProfiles[2].name = \"${NODE_POOL_3_NAME}\"" | \
 		jq ".properties.agentPoolProfiles[2].count = ${NODE_POOL_3_COUNT}" | \
 		jq ".properties.agentPoolProfiles[2].vmSize = \"${NODE_POOL_3_SIZE}\"" | \
 		jq ".properties.agentPoolProfiles[2].vnetSubnetId = \"${KUBERNETES_VNET_SUBNET_ID}\"" | \
-		jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_2_NAME}"))' > $outputDirName/kubernetes.json
+		jq 'del(.properties.agentPoolProfiles[] | select(.name == "${NODE_POOL_2_NAME}"))' > ./$outputDirName/kubernetes.json
 else 
 	cat ./$outputDirName/kubernetes_tmp.json | \
 		jq ".properties.agentPoolProfiles[1].name = \"${NODE_POOL_2_NAME}\"" | \
@@ -290,9 +310,10 @@ else
 		jq ".properties.agentPoolProfiles[2].name = \"${NODE_POOL_3_NAME}\"" | \
 		jq ".properties.agentPoolProfiles[2].count = ${NODE_POOL_3_COUNT}" | \
 		jq ".properties.agentPoolProfiles[2].vmSize = \"${NODE_POOL_3_SIZE}\"" | \
-		jq ".properties.agentPoolProfiles[2].vnetSubnetId = \"${KUBERNETES_VNET_SUBNET_ID}\"" > $outputDirName/kubernetes.json
+		jq ".properties.agentPoolProfiles[2].vnetSubnetId = \"${KUBERNETES_VNET_SUBNET_ID}\"" > ./$outputDirName/kubernetes.json
 fi
 
+rm $outputDirName/kubernetes_tmp_initial.json
 rm $outputDirName/kubernetes_tmp.json
 
 .log 6 "Generating deployment templates from model..."
@@ -337,7 +358,19 @@ declare RESOURCE_GROUP_LOCATION_LC=$(echo "$RESOURCE_GROUP_LOCATION" | tr '[:upp
 
 # Copy the region-specifc config to the top level in the output directory.
 cp $outputDirName/arm-deploy/kubeconfig/kubeconfig.$RESOURCE_GROUP_LOCATION_LC.json $outputDirName/config
-.log 6 "Done. Your kubeconfig: ./$outputDirName/config"
+
+if ! [ -z "$AADPROFILE_ADMIN_ID" ]; then 
+		.log 6 "Configuring cluster-admin role for user $AADPROFILE_ADMIN_ID..."
+	if [ -f $outputDirName/kubernetes_ssh_key ]; then
+		ssh -o StrictHostKeyChecking=no -i $outputDirName/kubernetes_ssh_key azureuser@$KUBERNETES_DNS_PREFIX.$RESOURCE_GROUP_LOCATION.cloudapp.azure.com << ENDSSH
+			kubectl create clusterrolebinding aad-default-cluster-admin-binding \
+			--clusterrole=cluster-admin \
+			--user "https://sts.windows.net/${AADPROFILE_TENANT_ID}/#${AADPROFILE_ADMIN_ID}"
+ENDSSH
+	else
+		.log 4 "Cannot configure cluster-admin role with custom SSH Key. Please fix manually."
+	fi
+fi
 
 if ! [ -z "$ADMIN_RESOURCE_GROUP_NAME" ]; then 
 	# Copy the region-specifc config to the configured key vault store
@@ -360,7 +393,7 @@ if ! [ -z "$ADMIN_RESOURCE_GROUP_NAME" ]; then
 	declare AZURE_STORAGE_ACCESS_KEY=$(az storage account keys list --account-name $ADMIN_STORAGE_NAME  -g QNOWS_PROD_QA_K8s_ADMIN_RG --query "[0].value" | tr -d '"' | tr -d ' ' | tr -d '\n' )
 	az storage container create --name deployment-config --account-name "$AZURE_STORAGE_ACCOUNT" --account-key "$AZURE_STORAGE_ACCESS_KEY"
 	az storage blob upload --container-name deployment-config --account-name "$AZURE_STORAGE_ACCOUNT" --account-key "$AZURE_STORAGE_ACCESS_KEY" --file ./$outputDirName/$outputDirName.7z --name $outputDirName.7z
-	.log 6 "$outputDirName.7z file was uploaded to your storage account: $ADMIN_STORAGE_NAME"
+	.log 6 "$outputDirName.7z file was uploaded to your storage account: $ADMIN_STORAGE_NAME"	
 
 	.log 6 "Cleaning up local data..."
 	rm -rf ./$outputDirName/

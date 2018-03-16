@@ -9,6 +9,11 @@
         "networkPolicy": "${KUBERNETES_NETWORK_POLICY}"
       }
     },
+    "aadProfile": {
+      "serverAppID": "${AADPROFILE_SERVER_APP_ID}",
+      "clientAppID": "${AADPROFILE_CLIENT_APP_ID}",
+      "tenantID": "${AADPROFILE_TENANT_ID}"
+    },
     "masterProfile": {
       "count": "${KUBERNETES_MASTER_COUNT}",
       "dnsPrefix": "${KUBERNETES_DNS_PREFIX}",
@@ -18,13 +23,12 @@
       "firstConsecutiveStaticIP": "${KUBERNETES_FIRST_CONSECUTIVE_MASTER_IP}",
       "vnetCidr": "${KUBERNETES_VNET_CIDR}"
     },
-    "agentPoolProfiles": [
-      {
+    "agentPoolProfiles": [{
         "name": "${NODE_POOL_1_NAME}",
         "count": "${NODE_POOL_1_COUNT}",
         "vmSize": "${NODE_POOL_1_SIZE}",
         "OSDiskSizeGB": 128,
-        "storageProfile" : "ManagedDisks",
+        "storageProfile": "ManagedDisks",
         "availabilityProfile": "AvailabilitySet",
         "vnetSubnetId": "${KUBERNETES_VNET_SUBNET_ID}"
       },
@@ -33,7 +37,7 @@
         "count": "${NODE_POOL_2_COUNT}",
         "vmSize": "${NODE_POOL_2_SIZE}",
         "OSDiskSizeGB": 128,
-        "storageProfile" : "ManagedDisks",
+        "storageProfile": "ManagedDisks",
         "availabilityProfile": "AvailabilitySet",
         "vnetSubnetId": "${KUBERNETES_VNET_SUBNET_ID}"
       },
@@ -42,7 +46,7 @@
         "count": "${NODE_POOL_3_COUNT}",
         "vmSize": "${NODE_POOL_3_SIZE}",
         "OSDiskSizeGB": 128,
-        "storageProfile" : "ManagedDisks",
+        "storageProfile": "ManagedDisks",
         "availabilityProfile": "AvailabilitySet",
         "vnetSubnetId": "${KUBERNETES_VNET_SUBNET_ID}"
       }
@@ -50,11 +54,9 @@
     "linuxProfile": {
       "adminUsername": "azureuser",
       "ssh": {
-        "publicKeys": [
-          {
-            "keyData": "${SSH_PUBLIC_KEY_DATA}"
-          }
-        ]
+        "publicKeys": [{
+          "keyData": "${SSH_PUBLIC_KEY_DATA}"
+        }]
       }
     },
     "servicePrincipalProfile": {
@@ -63,4 +65,3 @@
     }
   }
 }
-
